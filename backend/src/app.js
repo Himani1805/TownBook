@@ -29,12 +29,30 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(helmet());
-app.use(cors({
-    origin: ['https://town-book-two.vercel.app', 'http://localhost:5173', '*'],
+const corsOptions = {
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        
+        const allowedOrigins = [
+            'https://town-book-two.vercel.app',
+            'http://localhost:5173'
+        ];
+        
+        if (allowedOrigins.includes(origin) || 
+            process.env.NODE_ENV === 'development' && origin.includes('http://localhost')) {
+            return callback(null, true);
+        }
+        
+        callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    optionsSuccessStatus: 200 // Some legacy browsers choke on 204
+};
+
+app.use(cors(corsOptions));
 app.use(cookieParser());
 morgan.token('body', (req) => JSON.stringify(req.body));
 morgan.token('error', (req, res) => res.statusCode >= 400 ? 'Error' : 'Success');
